@@ -8,6 +8,8 @@ const mysql = require('mysql');
 const multer = require('multer');
 // bcrypt
 const bcrypt = require('bcrypt');
+//암호화 글자수
+const saltRounds = 10;
 
 // 서버 생성
 const app  = express();
@@ -50,22 +52,31 @@ conn.connect();
 
 // 회원가입 요청
 app.post('/join', async (req, res) => {
-    const {m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D} = req.body;
-    conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D)
-    values(?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D],
-    (err, result, fields) => {
-        if(result) {
-            res.send('ok');
-        } else {
-            console.log(err);
-        }
-    });
+    const mytextpass = req.body.m_pw;
+    let myPass = '';
+    const {m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id} = req.body;
+    console.log(req.body);
+    if(mytextpass != '' && mytextpass != undefined) {
+        bcrypt.genSalt(saltRounds, function(err, hash) {
+            myPass = hash;
+            conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id)
+            values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
+            (err, result, fields) => {
+                if(result) {
+                    console.log('회원가입 성공');
+                    res.send('ok');
+                } else {
+                    console.log(err);
+                }
+            });
+        });
+    } 
 });
 
 // 닉네임 중복확인
 app.post('/nickname', async (req, res) => {
-    const { m_nickname } = req.body;
-    conn.query(`select * from member where m_nickname = '${m_nickname}'`,
+    const { nickname } = req.body;
+    conn.query(`select * from member where m_nickname = '${nickname}'`,
     (err, result, fields) => {
         if(result) {
             res.send(result[0]);
@@ -75,7 +86,42 @@ app.post('/nickname', async (req, res) => {
     });
 });
 
+// 나누어져있는 email을 하나로 합쳐 새로운 컬럼에 업데이트
+app.patch('/updateid', async (req, res) => {
+    const { m_no } = req.body;
+    conn.query(`update member set m_id = concat('m_email1', '@', 'm_email2') where m_no = ${m_no}`,
+    (err, result, fields) => {
+        if(result) {
+            console.log('업데이트 성공');
+            res.send(result);
+        }else {
+            console.log('업데이트 실패');
+        }
+    });
+});
+
+// 로그인 요청
+app.post('/login', async (req, res) => {
+    const { userid, userpass } = req.body;
+    conn.query(`select * from member where m_id = '${userid}'`,
+    (err, result, fields) => {
+        if(result != undefined && result[0] != undefined) {
+            bcrypt.compare(userpass, result[0].m_pw, function(err, newPw) {
+                if(newPw) {
+                    console.log('로그인 성공');
+                    res.send(result);
+                }else {
+                    console.log('로그인 실패');
+                }
+            });
+        }else {
+            console.log(err);
+        }
+    });
+});
+
+
 // 서버 작동
 app.listen(port, () => {
     console.log('서버 작동중 ...');
-})
+});
