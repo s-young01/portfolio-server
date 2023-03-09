@@ -54,13 +54,14 @@ conn.connect();
 app.post('/join', async (req, res) => {
     const mytextpass = req.body.m_pw;
     let myPass = '';
-    const {m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id} = req.body;
-    console.log(req.body);
+    const {m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D} = req.body;
+    // m_id 컬럼에 admin@gmail.com 이런 식으로 나오게 문자열 합쳐주기
+    const m_id = m_email1 + "@" + m_email2;
     if(mytextpass != '' && mytextpass != undefined) {
         bcrypt.genSalt(saltRounds, function(err, hash) {
             myPass = hash;
             conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id)
-            values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
+            values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, myPass, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
             (err, result, fields) => {
                 if(result) {
                     console.log('회원가입 성공');
@@ -74,11 +75,12 @@ app.post('/join', async (req, res) => {
 });
 
 // 닉네임 중복확인
-app.post('/nickname', async (req, res) => {
-    const { nickname } = req.body;
-    conn.query(`select * from member where m_nickname = '${nickname}'`,
+app.get('/nickcheck/:m_nickname', async (req, res) => {
+    const { m_nickname } = req.params;
+    conn.query(`select * from member where m_nickname = '${m_nickname}'`,
     (err, result, fields) => {
         if(result) {
+            console.log(result);
             res.send(result[0]);
         }else {
             console.log(err);
@@ -86,37 +88,53 @@ app.post('/nickname', async (req, res) => {
     });
 });
 
-// 나누어져있는 email을 하나로 합쳐 새로운 컬럼에 업데이트
-app.patch('/updateid', async (req, res) => {
-    const { m_no } = req.body;
-    conn.query(`update member set m_id = concat('m_email1', '@', 'm_email2') where m_no = ${m_no}`,
+
+// 로그인 요청
+// app.post('/login', async (req, res) => {
+//     const { userid, userpass } = req.body;
+//     console.log(req.body);
+//     conn.query(`select * from member where m_id = '${userid}'`,
+//     (err, result, fields) => {
+//         if(result != undefined && result[0] != undefined) {
+//            bcrypt.compare(userpass, result[0].m_pw, function(err, newPw) {
+//             console.log(newPw);
+//             if(newPw) {
+//                 console.log('로그인 성공');
+//                 res.send(result);
+//             }else {
+//                 console.log('로그인 실패');
+//             }
+//            });
+//         }else {
+//             console.log('데이터가 없습니다.');
+//         }
+//     });
+// });
+
+// 글 등록 요청 post
+app.post('/postUpdate', async (req, res) => {
+    const {title, content} = req.body;
+    conn.query(`insert into posts(p_title, p_content) values(?,?)`, [title, content],
     (err, result, fields) => {
         if(result) {
-            console.log('업데이트 성공');
             res.send(result);
         }else {
-            console.log('업데이트 실패');
+            console.log(err);
         }
     });
 });
 
-// 로그인 요청
-app.post('/login', async (req, res) => {
-    const { userid, userpass } = req.body;
-    conn.query(`select * from member where m_id = '${userid}'`,
+// 등록된 글 가져오기 get
+app.get('/posts', async (req, res) => {
+    conn.query('select * from posts', (err, result, fields) => {
+        res.send(result);
+    });
+});
+app.get('/post/:no', async (req, res) => {
+    const { no } = req.params;
+    conn.query(`select * from posts where p_no = ${no}`,
     (err, result, fields) => {
-        if(result != undefined && result[0] != undefined) {
-            bcrypt.compare(userpass, result[0].m_pw, function(err, newPw) {
-                if(newPw) {
-                    console.log('로그인 성공');
-                    res.send(result);
-                }else {
-                    console.log('로그인 실패');
-                }
-            });
-        }else {
-            console.log(err);
-        }
+        res.send(result);
     });
 });
 
