@@ -90,43 +90,53 @@ app.get('/nickcheck/:m_nickname', async (req, res) => {
 
 
 // 로그인 요청
-// app.post('/login', async (req, res) => {
-//     const { userid, userpass } = req.body;
-//     console.log(req.body);
-//     conn.query(`select * from member where m_id = '${userid}'`,
-//     (err, result, fields) => {
-//         if(result != undefined && result[0] != undefined) {
-//            bcrypt.compare(userpass, result[0].m_pw, function(err, newPw) {
-//             console.log(newPw);
-//             if(newPw) {
-//                 console.log('로그인 성공');
-//                 res.send(result);
-//             }else {
-//                 console.log('로그인 실패');
-//             }
-//            });
-//         }else {
-//             console.log('데이터가 없습니다.');
-//         }
-//     });
-// });
+app.post('/login', async (req, res) => {
+    const { userid, userpw } = req.body;
+    console.log(req.body);
+    conn.query(`select * from member where m_id = '${userid}'`,
+    (err, result, fields) => {
+        if(result != undefined && result[0] != undefined) {
+           
+        //    bcrypt.compare(userpw, result[0].m_pw, function(err, newPw) {
+        //     console.log(newPw);
+        //     console.log(userpw);
+        //     console.log("aaaa")
+        //     if(newPw) {
+        //         console.log('로그인 성공');
+        //         res.send(result);
+        //     }else {
+        //         console.log('로그인 실패');
+        //     }
+        //    });
+            bcrypt.compare(userpw, result[0].m_pw,function(err,login_flag){
+                if(login_flag == true){
+                    res.send(result[0])
+                    console.log("이거");
+                }else {
+                    res.send(null)
+                    console.log("저거");
+                }
+            })
+
+
+        }else {
+            console.log('데이터가 없습니다.');
+        }
+    });
+});
 
 // 글 등록 요청 post
 app.post('/postUpdate', async (req, res) => {
-    const {title, content} = req.body;
-    conn.query(`insert into posts(p_title, p_content) values(?,?)`, [title, content],
-    (err, result, fields) => {
-        if(result) {
-            res.send(result);
-        }else {
-            console.log(err);
-        }
+    const {title, content } = req.body;
+    conn.query(`insert into posts(p_title, p_content, p_date) values('${title}', '${content}', date_format(now(), '%y.%m.%d. %H:%i'))`
+    , (err, result, fields) => {
+         res.send(result);
     });
 });
 
 // 등록된 글 가져오기 get
 app.get('/posts', async (req, res) => {
-    conn.query('select * from posts', (err, result, fields) => {
+    conn.query('select * from posts limit 7', (err, result, fields) => {
         res.send(result);
     });
 });
@@ -136,6 +146,7 @@ app.get('/post/:no', async (req, res) => {
     (err, result, fields) => {
         res.send(result);
     });
+    
 });
 
 
