@@ -58,19 +58,40 @@ app.post('/join', async (req, res) => {
     // m_id 컬럼에 admin@gmail.com 이런 식으로 나오게 문자열 합쳐주기
     const m_id = m_email1 + "@" + m_email2;
     if(mytextpass != '' && mytextpass != undefined) {
-        bcrypt.genSalt(saltRounds, function(err, hash) {
-            myPass = hash;
-            conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id)
-            values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, myPass, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
-            (err, result, fields) => {
-                if(result) {
-                    console.log('회원가입 성공');
-                    res.send('ok');
-                } else {
-                    console.log(err);
-                }
+        bcrypt.genSalt(saltRounds, function (err, salt) {
+            //hash메소드 호출되면 인자로 넣어준 비밀번호를 암호화하여
+            // 콜백함수 안 hash로 돌려준다.
+            bcrypt.hash(mytextpass, salt, function (err, hash) {
+                myPass = hash;
+                console.log(myPass)
+                //쿼리작성
+                conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id)
+                    values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, myPass, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
+                    (err, result, fields) => {
+                        if(result) {
+                            console.log('회원가입 성공');
+                            res.send('ok');
+                        } else {
+                            console.log(err);
+                        }
+                    });
             });
         });
+       
+        // bcrypt.genSalt(saltRounds, function(err, hash) {
+        //     myPass = hash;
+        //     console.log(myPass)
+        //     conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id)
+        //     values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, myPass, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
+        //     (err, result, fields) => {
+        //         if(result) {
+        //             console.log('회원가입 성공');
+        //             res.send('ok');
+        //         } else {
+        //             console.log(err);
+        //         }
+        //     });
+        // });
     } 
 });
 
@@ -80,7 +101,8 @@ app.get('/nickcheck/:m_nickname', async (req, res) => {
     conn.query(`select * from member where m_nickname = '${m_nickname}'`,
     (err, result, fields) => {
         if(result) {
-            console.log(result);
+            console.lo
+            g(result);
             res.send(result[0]);
         }else {
             console.log(err);
@@ -94,35 +116,48 @@ app.post('/login', async (req, res) => {
     const { userid, userpw } = req.body;
     console.log(req.body);
     conn.query(`select * from member where m_id = '${userid}'`,
-    (err, result, fields) => {
-        if(result != undefined && result[0] != undefined) {
-           
-        //    bcrypt.compare(userpw, result[0].m_pw, function(err, newPw) {
-        //     console.log(newPw);
-        //     console.log(userpw);
-        //     console.log("aaaa")
-        //     if(newPw) {
-        //         console.log('로그인 성공');
-        //         res.send(result);
-        //     }else {
-        //         console.log('로그인 실패');
-        //     }
-        //    });
-            bcrypt.compare(userpw, result[0].m_pw,function(err,login_flag){
-                if(login_flag == true){
-                    res.send(result[0])
-                    console.log("이거");
-                }else {
-                    res.send(null)
-                    console.log("저거");
-                }
-            })
-
-
+    // (err, result, fields) => {
+    //     console.log(result);
+    //     if(result != undefined && result[0] != undefined) {
+    //         bcrypt.compare(userpw, result[0].m_pw, function(err, newPw) {
+    //             console.log(newPw);
+    //             console.log(userpw);
+    //             if(newPw) {
+    //                 console.log('로그인 성공');
+    //                 console.log(result);
+    //                 res.send(result);
+    //             }else {
+    //                 console.log('로그인 실패');
+    //                 console.log(err);
+    //             }
+    //         });
+    //     }
+    // }
+    (err, rows, fields)=>{
+        if(rows != undefined){
+            if(rows[0] == undefined){
+                res.send(null)
+            }else{
+                bcrypt.compare(userpw, rows[0].m_pw, (err, result) => {
+                    if(result) {
+                        console.log('로그인 성공');
+                        console.log("결과",result);
+                    }else {
+                        console.log('로그인 실패');
+                        console.log('실패',err);
+                        console.log("결과결과",result);
+                    }
+                })
+            }
         }else {
-            console.log('데이터가 없습니다.');
+        res.send(null)
         }
-    });
+    }
+
+
+    
+    
+    );
 });
 
 // 글 등록 요청 post
