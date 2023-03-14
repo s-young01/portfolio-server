@@ -66,32 +66,17 @@ app.post('/join', async (req, res) => {
                 console.log(myPass)
                 //쿼리작성
                 conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id)
-                    values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, myPass, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
-                    (err, result, fields) => {
-                        if(result) {
-                            console.log('회원가입 성공');
-                            res.send('ok');
-                        } else {
-                            console.log(err);
-                        }
-                    });
+                values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, myPass, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
+                (err, result, fields) => {
+                    if(result) {
+                        console.log('회원가입 성공');
+                        res.send('ok');
+                    } else {
+                        console.log(err);
+                    }
+                });
             });
         });
-       
-        // bcrypt.genSalt(saltRounds, function(err, hash) {
-        //     myPass = hash;
-        //     console.log(myPass)
-        //     conn.query(`insert into member(m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D, m_id)
-        //     values(?,?,?,?,?,?,?,?,?,?,?)`, [m_name, m_nickname, m_email1, m_email2, myPass, m_pwch, m_phone, m_Y, m_M, m_D, m_id],
-        //     (err, result, fields) => {
-        //         if(result) {
-        //             console.log('회원가입 성공');
-        //             res.send('ok');
-        //         } else {
-        //             console.log(err);
-        //         }
-        //     });
-        // });
     } 
 });
 
@@ -101,8 +86,7 @@ app.get('/nickcheck/:m_nickname', async (req, res) => {
     conn.query(`select * from member where m_nickname = '${m_nickname}'`,
     (err, result, fields) => {
         if(result) {
-            console.lo
-            g(result);
+            console.log(result);
             res.send(result[0]);
         }else {
             console.log(err);
@@ -116,48 +100,22 @@ app.post('/login', async (req, res) => {
     const { userid, userpw } = req.body;
     console.log(req.body);
     conn.query(`select * from member where m_id = '${userid}'`,
-    // (err, result, fields) => {
-    //     console.log(result);
-    //     if(result != undefined && result[0] != undefined) {
-    //         bcrypt.compare(userpw, result[0].m_pw, function(err, newPw) {
-    //             console.log(newPw);
-    //             console.log(userpw);
-    //             if(newPw) {
-    //                 console.log('로그인 성공');
-    //                 console.log(result);
-    //                 res.send(result);
-    //             }else {
-    //                 console.log('로그인 실패');
-    //                 console.log(err);
-    //             }
-    //         });
-    //     }
-    // }
-    (err, rows, fields)=>{
-        if(rows != undefined){
-            if(rows[0] == undefined){
-                res.send(null)
-            }else{
-                bcrypt.compare(userpw, rows[0].m_pw, (err, result) => {
-                    if(result) {
-                        console.log('로그인 성공');
-                        console.log("결과",result);
-                    }else {
-                        console.log('로그인 실패');
-                        console.log('실패',err);
-                        console.log("결과결과",result);
-                    }
-                })
-            }
-        }else {
-        res.send(null)
+    (err, result, fields) => {
+        console.log(result);
+        if(result != undefined && result[0] != undefined) {
+            bcrypt.compare(userpw, result[0].m_pw, function(err, newPw) {
+                console.log(newPw);
+                console.log(userpw);
+                if(newPw) {
+                    console.log('로그인 성공');
+                    res.send(result);
+                }else {
+                    console.log('로그인 실패');
+                    console.log(err);
+                }
+            });
         }
-    }
-
-
-    
-    
-    );
+    });
 });
 
 // 글 등록 요청 post
@@ -172,6 +130,7 @@ app.post('/postUpdate', async (req, res) => {
 // 등록된 글 가져오기 get
 app.get('/posts', async (req, res) => {
     conn.query('select * from posts limit 7', (err, result, fields) => {
+        console.log(result);
         res.send(result);
     });
 });
@@ -179,6 +138,7 @@ app.get('/post/:no', async (req, res) => {
     const { no } = req.params;
     conn.query(`select * from posts where p_no = ${no}`,
     (err, result, fields) => {
+        console.log(result);
         res.send(result);
     });
     
