@@ -10,6 +10,9 @@ const multer = require('multer');
 const bcrypt = require('bcrypt');
 //암호화 글자수
 const saltRounds = 10;
+const path = require('path');
+const mime = require('mime-types');
+const { v4:uuid } = require('uuid');
 
 // 서버 생성
 const app  = express();
@@ -24,22 +27,30 @@ app.use('/upload', express.static('upload'));
 
 // storage 생성
 const storage = multer.diskStorage({
-    destination: (req, file, cd) => {
-        cd(null, 'upload/images/');
+    destination: (req, file, cb) => {
+        cb(null, 'images');
     },
-    filename: (req, file, cd) => {
-        const newFrilename = file.originalname;
-        cd(null, newFrilename);
+    filename: (req, file, cb) => {
+        cb(null, `${uuid()}.${mime.extension(file.mimetype)}`);
     }
 });
 // upload 객체 생성
-const upload = multer({ storage: storage });
-// upload 경로로 post 요청 시 응답 구현
-app.post('/upload', upload.single('file'), (req, res) => {
-    res.send({
-        imgUrl: req.file.filename
-    });
+const upload = multer({
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+        if (["image/jpeg", "image/jpg", "image/png"].includes(file.mimetype)) {
+            cb(null, true);
+        }else {
+            cb(new Error("해당 파일의 형식을 지원하지 않습니다."), false);
+        }
+    },
+    limits: { fileSize: 1024 * 1024 * 5 }
 });
+// upload 경로로 post 요청 시 응답 구현
+app.post('/api/upload', upload.single('file'), (req, res) => {
+    res.status(200).json(req.file);
+});
+app.use('/images', express.static(path.join(__dirname, '/images')));
 
 // mysql 연결
 const conn = mysql.createConnection({
@@ -129,8 +140,7 @@ app.post('/postUpdate', async (req, res) => {
 
 // 등록된 글 가져오기 get
 app.get('/posts', async (req, res) => {
-    conn.query('select * from posts limit 7', (err, result, fields) => {
-        console.log(result);
+    conn.query('select * from posts limit 8', (err, result, fields) => {
         res.send(result);
     });
 });
@@ -138,7 +148,6 @@ app.get('/post/:no', async (req, res) => {
     const { no } = req.params;
     conn.query(`select * from posts where p_no = ${no}`,
     (err, result, fields) => {
-        console.log(result);
         res.send(result);
     });
     
