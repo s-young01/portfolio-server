@@ -13,6 +13,8 @@ const saltRounds = 10;
 const path = require('path');
 const mime = require('mime-types');
 const { v4:uuid } = require('uuid');
+const { log } = require('console');
+const { SlowBuffer } = require('buffer');
 
 // 서버 생성
 const app  = express();
@@ -127,6 +129,58 @@ app.post('/login', async (req, res) => {
             });
         }
     });
+});
+
+// 아이디 찾기 요청
+app.post('/findid', async (req, res) => {
+    const { username, userphone } = req.body;
+    conn.query(`select * from member where m_name = '${username}' and m_phone = '${userphone}'`,
+    (err, result, fields) => {
+        if(result != undefined && result[0] != undefined) {
+            console.log('OK');
+            res.send(result[0].m_id);
+        } else {
+            console.log(err);
+        }
+    });
+});
+
+// 비밀번호 찾기 요청
+app.post('/findpw', async (req, res) => {
+    const { username, userid } = req.body;
+    conn.query(`select * from member where m_name = '${username}' and m_id = '${userid}'`,
+    (err, result, fields) => {
+        if(result != undefined && result[0] != undefined) {
+            console.log('OK');
+            res.send(result[0].m_pwch);
+        } else {
+            console.log(err);
+        }
+    });
+});
+
+// 비밀번호 변경 요청
+app.post('/newpw', async (req, res) => {
+    const {newpw, newpwCh, userid} = req.body;
+    const mytextpass = newpw;
+    let myPass = '';
+    if(mytextpass != '' && mytextpass != undefined) {
+        bcrypt.genSalt(saltRounds, function(err, salt) {
+            bcrypt.hash(mytextpass, salt, function(err, hash) {
+                myPass = hash;
+                console.log(myPass);
+                conn.query(`update member set m_pw = '${myPass}' and m_pwch = '${newpwCh}' where m_id = '${userid}'`,
+                (err, result, fields) => {
+                    if(result) {
+                        console.log('비밀번호 변경 성공');
+                        res.send(result);
+                    }else {
+                        console.log(err);
+                    }
+                });
+            });
+        });
+    }
 });
 
 // 글 등록 요청 post
