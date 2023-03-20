@@ -10,8 +10,8 @@ const multer = require('multer');
 const bcrypt = require('bcrypt');
 //암호화 글자수
 const saltRounds = 10;
-// 쿠키파서
-const cookieParser = require('cookie-parser');
+// moment
+const moment =require('moment-timezone');
 
 const path = require('path');
 const mime = require('mime-types');
@@ -27,44 +27,39 @@ const port = 8080;
 app.use(cors());
 // json 형태로 변환
 app.use(express.json());
-// upload폴더를 클라이언트에서 접근 가능하도록 설정
+// upload폴더 클라이언트에서 접근 가능하도록 설정
 app.use('/upload', express.static('upload'));
-// 쿠키 파서
-app.use(cookieParser());
 
 // storage 생성
+// diskStorage : 이미지를 저장해주는 저장소 역할을 함
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'images');
+    // 어디에 저장할지 경로를 설정.
+    destination: (req, file, cd) => {
+        cd(null, 'upload/');
     },
-    filename: (req, file, cb) => {
-        cb(null, `${uuid()}.${mime.extension(file.mimetype)}`);
+    filename: (req, file, cd) => {
+        // 파일 이름은 직접 지정한 이름으로 저장하도록 설정.
+        const newFilename = file.originalname;
+        cd(null, newFilename);
     }
 });
-// upload 객체 생성
-const upload = multer({
-    storage: storage,
-    fileFilter: (req, file, cb) => {
-        if (["image/jpeg", "image/jpg", "image/png"].includes(file.mimetype)) {
-            cb(null, true);
-        }else {
-            cb(new Error("해당 파일의 형식을 지원하지 않습니다."), false);
-        }
-    },
-    limits: { fileSize: 1024 * 1024 * 5 }
+// upload객체 생성
+const upload = multer({storage: storage});
+// upload경로로 post요청 왔을 시 응답 구현
+// .single('') : 지정한 경로로 요청이 왔을 때 객체의key이름을 받아 처리해서 넣어줌
+app.post('/upload', upload.single('file'), (req, res) => {
+    res.send({
+        imgUrl: req.file.filename
+    });
 });
-// upload 경로로 post 요청 시 응답 구현
-app.post('/api/upload', upload.single('file'), (req, res) => {
-    res.status(200).json(req.file);
-});
-app.use('/images', express.static(path.join(__dirname, '/images')));
 
 // mysql 연결
 const conn = mysql.createConnection({
     host: 'hera-para.cyrwjcvax6mc.ap-northeast-1.rds.amazonaws.com',
     user: 'admin',
     password: '12345678',
-    database: 'Written_Forest'
+    database: 'Written_Forest',
+    dateStrings: 'true'
 });
 conn.connect();
 
@@ -75,7 +70,6 @@ app.post('/join', async (req, res) => {
     const {m_name, m_nickname, m_email1, m_email2, m_pw, m_pwch, m_phone, m_Y, m_M, m_D} = req.body;
     // m_id 컬럼에 admin@gmail.com 이런 식으로 나오게 문자열 합쳐주기
     const m_id = m_email1 + "@" + m_email2;
-    const userpath = m_nickname;
     if(mytextpass != '' && mytextpass != undefined) {
         bcrypt.genSalt(saltRounds, function (err, salt) {
             //hash메소드 호출되면 인자로 넣어준 비밀번호를 암호화하여
@@ -124,6 +118,8 @@ app.post('/login', async (req, res) => {
             bcrypt.compare(userpw, result[0].m_pw, function(err, newPw) {
                 if(newPw) {
                     console.log('로그인 성공');
+                    // 로그인 성공 시 파라미터 값으로 넘겨 줄 닉네임 값 변수에 저장
+                    let usernickname = result[0].m_nickname;
                     res.send(result);
                 }
             });
@@ -193,60 +189,46 @@ app.patch('/newpw', async (req, res) => {
 
 // 글 등록 요청 post
 app.post('/postUpdate', async (req, res) => {
-    const { title, content } = req.body;
-    const userid = req.cookies.userid;
-    conn.query(`select m_id from member where m_id = '${userid}'`,
+    const { title, content, writer, img } = req.body;
+    const date = moment().tz('Asia/Seoul').format('YY.MM.DD HH:mm');
+    conn.query(`insert into posts(p_title, p_content, p_date, p_writer, p_img) 
+    values('${title}', '${content}', '${date}', '${writer}', '${img}')`,
     (err, result, fields) => {
-        const nickname = result[0].m_nickname;
-        conn.query(`insert into posts(p_title, p_content, p_date, p_writer) 
-        values('${title}', '${content}', date_format(now(), '%y.%m.%d. %H:%i'), '${nickname}')`,
-        (err, result, fields) => {
-            if(result) {
-                res.send(result);
-            }else {
-                console.log(err);
-            }
-            
-        });
+        if(result) {
+            res.send(result);
+        }else {
+            console.log(err);
+        }   
     });
 });
 
 // 등록된 글 가져오기 get
 app.get('/posts/:userpath', async (req, res) => {
     const { userpath } = req.params;
-    const userId = req.cookies.userid;
-    // 쿠키 값으로부터 가져온 userId를 이용하여 데이터베이스에서 회원 정보 조회
-    conn.query(`SELECT m_nickname FROM member WHERE m_id = '${userId}'`, (err, result, fields) => {
-      if (err) {
-        console.log(err);
-        res.send('에러가 발생했습니다.');
-      }
-      // 쿠키 값으로부터 가져온 userId와 조회된 회원 정보의 m_nickname이 일치하는 경우
-      if (result && result.length && result[0].m_nickname === userpath) {
-        // 게시글 조회 쿼리
-        const query = 'SELECT * FROM posts LIMIT 8';
-  
-        conn.query(query, (err, result, fields) => {
-          if (err) {
-            console.log(err);
-            res.send('에러가 발생했습니다.');
-          }
-          if (result) {
-            res.send(result);
-          } else {
-            res.send('조회된 데이터가 없습니다.');
-          }
+    console.log(userpath);
+    if(userpath != undefined) {
+        conn.query(`select * from posts where p_writer = '${userpath}' limit 8`, (err, result, fields) => {
+            if(result) {
+                console.log(result);
+                res.send(result);
+            }else {
+                console.log(err);
+            }
         });
-      } else {
-        res.send('사용자 정보가 일치하지 않습니다.');
-      }
-    });
-  });
-app.get('/post/:no', async (req, res) => {
-    const { no } = req.params;
-    conn.query(`select * from posts where p_no = ${no}`,
+    }else {
+        console.log('사용자가 없습니다.');
+    }
+});
+app.get('/post/:no/:userpath', async (req, res) => {
+    const { no, userpath } = req.params;
+    // console.log(req.params);
+    conn.query(`select * from posts where p_no = ${no} and p_writer = '${userpath}'`,
     (err, result, fields) => {
-        res.send(result);
+        if(result) {
+            res.send(result);
+        }else {
+            console.log(err);
+        }
     });
 });
 
