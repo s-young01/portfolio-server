@@ -107,7 +107,6 @@ app.get('/nickcheck/:m_nickname', async (req, res) => {
     });
 });
 
-
 // 로그인 요청
 app.post('/login', async (req, res) => {
     const { userid, userpw } = req.body;
@@ -225,6 +224,50 @@ app.get('/post/:no/:userpath', async (req, res) => {
     conn.query(`select * from posts where p_no = ${no} and p_writer = '${userpath}'`,
     (err, result, fields) => {
         if(result) {
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+});
+
+// 글 수정 페이지로 이동
+app.get('/modifypost/:no', async (req, res) => {
+    const { no } = req.params;
+    conn.query(`select * from posts where p_no = ${no}`,
+    (err, result, fields) => {
+        if(result) {
+            console.log(result);
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+});
+
+// 등록된 글 수정
+app.patch('/modifypost', async (req, res) => {
+    const { title, content, img, no } = req.body;
+    console.log(req.body);
+    console.log(no);
+    conn.query(`update posts set p_title = '${title}', p_content = '${content}', p_img = '${img}' where p_no = '${no}'`,
+    (err, result, fields) => {
+        if(result) {
+            console.log('포스트 수정 완료');
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+});
+
+// 등록된 글 삭제
+app.delete('/delatepost/:no', async (req, res) => {
+    const { no } = req.params
+    conn.query(`delete from posts where p_no = '${no}'`,
+    (err, result, fields) => {
+        if(result) {
+            console.log('포스트 삭제 완료');
             res.send(result);
         }else {
             console.log(err);
