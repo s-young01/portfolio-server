@@ -275,6 +275,47 @@ app.delete('/delatepost/:no', async (req, res) => {
     });
 });
 
+// 댓글 데이터 등록
+app.post('/commend', async (req, res) => {
+    const {c_nickname, c_desc, c_postno} = req.body;
+    conn.query(`insert into commend(c_nickname, c_desc, c_postno) values(?,?,?)`,
+    [c_nickname, c_desc, c_postno], (err, result, fields) => {
+        if(result) {
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+});
+
+// 댓글 데이터 요청
+app.get('/commend/:no', async (req, res) => {
+    const { no } = req.params;
+    conn.query(`select * from commend where c_postno = '${no}'`,
+    (err, result, fields) => {
+        if(result) {
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+});
+
+// 댓글 삭제
+app.delete('/delcommend/:no', async (req, res) => {
+    const { no } = req.params;
+    console.log(no);
+    conn.query(`delete from commend where c_no = ${no}`,
+    (err, result, fields) => {
+        if(result) {
+            console.log('댓글 삭제 완료');
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+});
+
 
 // 서버 작동
 app.listen(port, () => {
