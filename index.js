@@ -15,9 +15,6 @@ const moment =require('moment-timezone');
 
 const path = require('path');
 const mime = require('mime-types');
-const { v4:uuid } = require('uuid');
-const { log } = require('console');
-const { SlowBuffer } = require('buffer');
 
 // 서버 생성
 const app  = express();
@@ -204,11 +201,9 @@ app.post('/postUpdate', async (req, res) => {
 // 등록된 글 가져오기 get
 app.get('/posts/:userpath', async (req, res) => {
     const { userpath } = req.params;
-    console.log(userpath);
     if(userpath != undefined) {
         conn.query(`select * from posts where p_writer = '${userpath}' limit 8`, (err, result, fields) => {
             if(result) {
-                console.log(result);
                 res.send(result);
             }else {
                 console.log(err);
@@ -220,7 +215,6 @@ app.get('/posts/:userpath', async (req, res) => {
 });
 app.get('/post/:no/:userpath', async (req, res) => {
     const { no, userpath } = req.params;
-    // console.log(req.params);
     conn.query(`select * from posts where p_no = ${no} and p_writer = '${userpath}'`,
     (err, result, fields) => {
         if(result) {
@@ -237,7 +231,6 @@ app.get('/modifypost/:no', async (req, res) => {
     conn.query(`select * from posts where p_no = ${no}`,
     (err, result, fields) => {
         if(result) {
-            console.log(result);
             res.send(result);
         }else {
             console.log(err);
@@ -248,8 +241,6 @@ app.get('/modifypost/:no', async (req, res) => {
 // 등록된 글 수정
 app.patch('/modifypost', async (req, res) => {
     const { title, content, img, no } = req.body;
-    console.log(req.body);
-    console.log(no);
     conn.query(`update posts set p_title = '${title}', p_content = '${content}', p_img = '${img}' where p_no = '${no}'`,
     (err, result, fields) => {
         if(result) {
@@ -268,6 +259,20 @@ app.delete('/delatepost/:no', async (req, res) => {
     (err, result, fields) => {
         if(result) {
             console.log('포스트 삭제 완료');
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+});
+
+// 포스트에 있는 닉네임 값 헤더로 요청
+app.get('/usernick/:userpath', async (req, rse) => {
+    const { userpath } = req.params;
+    console.log(userpath);
+    conn.query(`select * from posts where p_writer='${userpath}'`,
+    (err, result, fields) => {
+        if(result) {
             res.send(result);
         }else {
             console.log(err);
@@ -304,7 +309,6 @@ app.get('/commend/:no', async (req, res) => {
 // 댓글 삭제
 app.delete('/delcommend/:no', async (req, res) => {
     const { no } = req.params;
-    console.log(no);
     conn.query(`delete from commend where c_no = ${no}`,
     (err, result, fields) => {
         if(result) {
@@ -315,6 +319,22 @@ app.delete('/delcommend/:no', async (req, res) => {
         }
     });
 });
+
+// 검색 조회
+app.get('/search/:userpath/:text', async (req, res) => {
+    const { userpath, text } = req.params;
+    console.log(userpath);
+    console.log(text);
+    conn.query(`select * from posts where p_writer = '${userpath}' like '%${text}%'`,
+    (err, result, fields) => {
+        if(result) {
+            console.log(result);
+            res.send(result);
+        }else {
+            console.log(err);
+        }
+    });
+})
 
 
 // 서버 작동
