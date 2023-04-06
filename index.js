@@ -241,10 +241,13 @@ app.get('/modifypost/:no', async (req, res) => {
 // 등록된 글 수정
 app.patch('/modifypost', async (req, res) => {
     const { title, content, img, no } = req.body;
+    console.log(req.body)
+    console.log(no)
     conn.query(`update posts set p_title = '${title}', p_content = '${content}', p_img = '${img}' where p_no = '${no}'`,
     (err, result, fields) => {
         if(result) {
             console.log('포스트 수정 완료');
+            console.log(result)
             res.send(result);
         }else {
             console.log(err);
@@ -325,7 +328,7 @@ app.get('/search/:userpath/:text', async (req, res) => {
     const { userpath, text } = req.params;
     console.log(userpath);
     console.log(text);
-    conn.query(`select * from posts where p_writer = '${userpath}' like '%${text}%'`,
+    conn.query(`select * from posts where p_writer = '${userpath}' and (p_content like '%${text}%' or p_title like '%${text}%')`,
     (err, result, fields) => {
         if(result) {
             console.log(result);
