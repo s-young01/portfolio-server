@@ -269,20 +269,6 @@ app.delete('/delatepost/:no', async (req, res) => {
     });
 });
 
-// 포스트에 있는 닉네임 값 헤더로 요청
-// app.get('/usernick/:userpath', async (req, rse) => {
-//     const { userpath } = req.params;
-//     console.log(userpath);
-//     conn.query(`select * from posts where p_writer='${userpath}'`,
-//     (err, result, fields) => {
-//         if(result) {
-//             res.send(result);
-//         }else {
-//             console.log(err);
-//         }
-//     });
-// });
-
 // 댓글 데이터 등록
 app.post('/commend', async (req, res) => {
     const {c_nickname, c_desc, c_postno} = req.body;
